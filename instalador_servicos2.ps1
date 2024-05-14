@@ -23,10 +23,10 @@ Check-Admin
 
 function Show-Menu {
     Clear-Host
-    Write-Host "*** Instalação de Softwares ***"
+    Write-Host "*** Instalacao de Softwares ***"
     Write-Host "1) Instalar Agente Zabbix"
     Write-Host "2) Instalar Agente Wazuh"
-    Write-Host "3) Registrar Equipamento no Domínio"
+    Write-Host "3) Registrar Equipamento no Dominio"
     Write-Host "4) Instalar Karspersky"
     Write-Host "0) Sair"
 }
