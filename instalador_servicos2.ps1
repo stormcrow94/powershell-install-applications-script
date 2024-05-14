@@ -66,9 +66,9 @@ function Install-Zabbix {
     }
 
     # Prompting for user inputs
-    $ZabbixServer = SolicitarEntrada "Digite o endereço IP ou hostname do servidor Zabbix"
+    $ZabbixServer = SolicitarEntrada "Digite o endereco IP ou hostname do servidor Zabbix"
     $Hostname = SolicitarEntrada "Digite o nome do host para este agente"
-    $ZabbixVersion = SolicitarEntrada "Digite a versão do Zabbix (por exemplo, 6.0)"
+    $ZabbixVersion = SolicitarEntrada "Digite a versao do Zabbix (por exemplo, 6.0)"
     $DiscoveryRule = SolicitarEntrada "Digite o nome da regra de descoberta"
 
     # Proceed with the fresh installation
