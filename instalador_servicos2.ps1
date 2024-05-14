@@ -23,10 +23,10 @@ Check-Admin
 
 function Show-Menu {
     Clear-Host
-    Write-Host "*** Instalacao de Softwares ***"
+    Write-Host "*** Instalação de Softwares ***"
     Write-Host "1) Instalar Agente Zabbix"
     Write-Host "2) Instalar Agente Wazuh"
-    Write-Host "3) Registrar Equipamento no Dominio"
+    Write-Host "3) Registrar Equipamento no Domínio"
     Write-Host "4) Instalar Karspersky"
     Write-Host "0) Sair"
 }
@@ -44,45 +44,35 @@ function Install-Zabbix {
     $zabbixAgentUrl = "https://cdn.zabbix.com/zabbix/binaries/stable/6.4/6.4.14/zabbix_agent-6.4.14-windows-amd64-openssl.msi"
     $zabbixMsiFile = "$tmpDir\zabbix_agent.msi"
 
-    # Get the absolute path of the current script's directory
-    $scriptDir = Split-Path -Parent $PSCommandPath
-
     # Check for an existing Zabbix installation
     if (Get-Service -Name Zabbix* -ErrorAction SilentlyContinue) {
         Write-Host "Previous Zabbix agent installation detected."
+        Write-Host "Removing existing Zabbix agent installation..."
 
-        # Path to the Zabbix removal script
-        $removalScriptPath = Join-Path $scriptDir "remove_zabbix.ps1"
+        # Uninstall existing Zabbix agent
+        $uninstallCommand = "msiexec.exe /x `"$zabbixMsiFile`" /quiet"
+        Invoke-Expression $uninstallCommand
 
-        # Ensure existence of external script
-        if (-not (Test-Path $removalScriptPath)) {
-            Write-Error "Cannot find the Zabbix removal script: $removalScriptPath"
-            return # or exit as needed
-        }
-
-        # Call the removal script with elevated privileges
-        Start-Process PowerShell.exe -Verb runAs -ArgumentList "-NoExit", "-File", $removalScriptPath
-        return # End execution of the Install-Zabbix function
+        # Wait for the uninstallation to complete
+        Start-Sleep -Seconds 10
     }
 
     # Prompting for user inputs
-    $ZabbixServer = SolicitarEntrada "Digite o endereco IP ou hostname do servidor Zabbix"
+    $ZabbixServer = SolicitarEntrada "Digite o endereço IP ou hostname do servidor Zabbix"
     $Hostname = SolicitarEntrada "Digite o nome do host para este agente"
 
     # Proceed with the fresh installation
     Write-Host "Downloading Zabbix agent..."
     Invoke-WebRequest -Uri $zabbixAgentUrl -OutFile $zabbixMsiFile
 
-    # Create log file directory if it doesn't exist
-    $logPath = "C:\temp"  # Modify this path if needed
-    if (-not (Test-Path $logPath)) {
-        New-Item -ItemType Directory -Path $logPath -ErrorAction SilentlyContinue
+    # Check if the download was successful
+    if (-Not (Test-Path $zabbixMsiFile)) {
+        Write-Error "Failed to download Zabbix agent. Please check the URL and try again."
+        return
     }
 
-    $logFile = Join-Path $logPath "zabbix_install_log.txt"
-
     Write-Host "Installing Zabbix agent with detailed output..."
-    Start-Process -FilePath msiexec.exe -ArgumentList "/i $zabbixMsiFile /quiet /log $logFile" -Wait
+    Start-Process -FilePath msiexec.exe -ArgumentList "/i $zabbixMsiFile /quiet /log $tmpDir\zabbix_install_log.txt" -Wait
 
     # Check if installation was successful
     if (Test-Path "C:\Program Files\Zabbix Agent\zabbix_agentd.conf") {
