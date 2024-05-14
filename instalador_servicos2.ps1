@@ -68,8 +68,6 @@ function Install-Zabbix {
     # Prompting for user inputs
     $ZabbixServer = SolicitarEntrada "Digite o endereco IP ou hostname do servidor Zabbix"
     $Hostname = SolicitarEntrada "Digite o nome do host para este agente"
-    $ZabbixVersion = SolicitarEntrada "Digite a versao do Zabbix (por exemplo, 6.0)"
-    $DiscoveryRule = SolicitarEntrada "Digite o nome da regra de descoberta"
 
     # Proceed with the fresh installation
     Write-Host "Downloading Zabbix agent..."
@@ -99,10 +97,6 @@ function Install-Zabbix {
             $configContent = $configContent -replace 'ServerActive=127.0.0.1', "ServerActive=$ZabbixServer"
             $configContent = $configContent -replace 'Hostname=Windows host', "Hostname=$Hostname"
             $configContent = $configContent -replace '# Hostname=', "Hostname=$Hostname"
-
-            # Add auto-discovery configuration
-            Add-Content $configFile "`n# Auto-Descoberta"
-            Add-Content $configFile "UserParameter=discovery.rule,$DiscoveryRule"
 
             $configContent | Set-Content $configFile
 
