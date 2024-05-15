@@ -23,92 +23,67 @@ Check-Admin
 
 function Show-Menu {
     Clear-Host
-    Write-Host "*** Instalação de Softwares ***"
+    Write-Host "*** Instalacao de Softwares ***"
     Write-Host "1) Instalar Agente Zabbix"
     Write-Host "2) Instalar Agente Wazuh"
-    Write-Host "3) Registrar Equipamento no Domínio"
+    Write-Host "3) Registrar Equipamento no Dominio"
     Write-Host "4) Instalar Karspersky"
     Write-Host "0) Sair"
 }
 
 function Install-Zabbix {
-    function SolicitarEntrada {
-        param (
-            [string]$mensagem
-        )
-        Write-Host $mensagem -ForegroundColor Yellow
-        Read-Host
-    }
-
-    $tmpDir = $env:tmp
+    # Define variables
     $zabbixAgentUrl = "https://cdn.zabbix.com/zabbix/binaries/stable/6.4/6.4.14/zabbix_agent-6.4.14-windows-amd64-openssl.msi"
-    $zabbixMsiFile = "$tmpDir\zabbix_agent.msi"
+    $downloadPath = "$env:TEMP\zabbix_agent-6.4.14-windows-amd64-openssl.msi"
+    $zabbixProxyIp = "10.130.3.201"
+    $serviceName = "Zabbix Agent"
+    $zabbixHostname = $env:COMPUTERNAME
 
-    # Check for an existing Zabbix installation
-    if (Get-Service -Name Zabbix* -ErrorAction SilentlyContinue) {
-        Write-Host "Previous Zabbix agent installation detected."
-        Write-Host "Removing existing Zabbix agent installation..."
+    # Download Zabbix agent
+    Write-Host "Downloading Zabbix agent from $zabbixAgentUrl..."
+    Invoke-WebRequest -Uri $zabbixAgentUrl -OutFile $downloadPath
 
-        # Uninstall existing Zabbix agent
-        $uninstallCommand = "msiexec.exe /x `"$zabbixMsiFile`" /quiet"
-        Invoke-Expression $uninstallCommand
+    # Install Zabbix agent with configuration
+    Write-Host "Installing Zabbix agent..."
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", "`"$downloadPath`"", "/qn", "SERVER=$zabbixProxyIp", "SERVERACTIVE=$zabbixProxyIp", "HOSTNAME=$zabbixHostname" -Wait
 
-        # Wait for the uninstallation to complete
-        Start-Sleep -Seconds 10
-    }
+    # Check potential configuration file paths
+    $configPaths = @(
+        "C:\Program Files\Zabbix Agent\zabbix_agentd.conf",
+        "C:\Program Files (x86)\Zabbix Agent\zabbix_agentd.conf",
+        "C:\Program Files\Zabbix Agent 2\zabbix_agent2.conf",
+        "C:\Program Files (x86)\Zabbix Agent 2\zabbix_agent2.conf"
+    )
 
-    # Prompting for user inputs
-    $ZabbixServer = SolicitarEntrada "Digite o endereço IP ou hostname do servidor Zabbix"
-    $Hostname = SolicitarEntrada "Digite o nome do host para este agente"
-
-    # Proceed with the fresh installation
-    Write-Host "Downloading Zabbix agent..."
-    Invoke-WebRequest -Uri $zabbixAgentUrl -OutFile $zabbixMsiFile
-
-    # Check if the download was successful
-    if (-Not (Test-Path $zabbixMsiFile)) {
-        Write-Error "Failed to download Zabbix agent. Please check the URL and try again."
-        return
-    }
-
-    Write-Host "Installing Zabbix agent with detailed output..."
-    Start-Process -FilePath msiexec.exe -ArgumentList "/i $zabbixMsiFile /quiet /log $tmpDir\zabbix_install_log.txt" -Wait
-
-    # Check if installation was successful
-    if (Test-Path "C:\Program Files\Zabbix Agent\zabbix_agentd.conf") {
-        # Modify Configuration
-        $configFile = "C:\Program Files\Zabbix Agent\zabbix_agentd.conf"
-
-        Write-Host "Modifying Zabbix configuration file: $configFile"
-
-        try {
-            $configContent = Get-Content $configFile
-            $configContent = $configContent -replace 'Server=127.0.0.1', "Server=$ZabbixServer"
-            $configContent = $configContent -replace 'ServerActive=127.0.0.1', "ServerActive=$ZabbixServer"
-            $configContent = $configContent -replace 'Hostname=Windows host', "Hostname=$Hostname"
-            $configContent = $configContent -replace '# Hostname=', "Hostname=$Hostname"
-
-            $configContent | Set-Content $configFile
-
-            Write-Host "Zabbix configuration updated with hostname: $Hostname"
-        } catch {
-            Write-Error "Failed to modify Zabbix configuration: $_"
+    # Find the correct configuration file path
+    $configPath = $null
+    foreach ($path in $configPaths) {
+        if (Test-Path -Path $path) {
+            $configPath = $path
+            break
         }
+    }
+
+    # Configure Zabbix agent
+    Write-Host "Configuring Zabbix agent..."
+    if ($configPath) {
+        $configContent = Get-Content -Path $configPath
+
+        # Update configuration with Zabbix proxy details
+        $configContent = $configContent -replace "Server=.*", "Server=$zabbixProxyIp"
+        $configContent = $configContent -replace "ServerActive=.*", "ServerActive=$zabbixProxyIp"
+        $configContent = $configContent -replace "Hostname=.*", "Hostname=$zabbixHostname"
+
+        # Save updated configuration
+        $configContent | Set-Content -Path $configPath
+
+        # Restart Zabbix agent service
+        Write-Host "Restarting Zabbix agent service..."
+        Restart-Service -Name $serviceName
+
+        Write-Host "Zabbix agent installation and configuration completed successfully."
     } else {
-        Write-Warning "Zabbix agent installation might have failed. Please check logs."
-    }
-
-    # Check if the service is running
-    Write-Host "Checking Zabbix service status..."
-    try {
-        $zabbixService = Get-Service -Name Zabbix* -ErrorAction Stop
-        if ($zabbixService.Status -eq "Running") {
-            Write-Host "Zabbix service is running."
-        } else {
-            Write-Warning "Zabbix service might not be running."
-        }
-    } catch {
-        Write-Warning "Failed to check Zabbix service status. Please check manually."
+        Write-Host "Configuration file not found in expected paths."
     }
 }
 
