@@ -158,7 +158,7 @@ function Install-KasperskyEDR {
 
 do {
     Show-Menu
-    $choice = Read-Host "Escolha uma opção"
+    $choice = Read-Host "Escolha uma opcao"
 
     switch ($choice) {
         '1' { Install-Zabbix }
