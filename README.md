@@ -17,12 +17,13 @@ Conjunto simples de scripts em PowerShell para instalar ou remover rapidamente a
 ## Scripts incluídos
 - `main_installer.ps1`: apresenta o menu, verifica privilégios e chama os demais scripts com controle de timeout.
 - `install_zabbix_silent.ps1`: faz o download do agente oficial, configura servidor/proxy e inicia o serviço.
-- `install_sophos.ps1` e `install_wazuh.ps1`: placeholders prontos para receber os comandos dos respectivos instaladores (adicione os passos internos antes de usar as opções 2 ou 3 do menu).
+- `install_sophos.ps1`: baixa o `SophosSetup.exe`, detecta automaticamente se o host é servidor ou estação e executa a instalação silenciosa (`--quiet`), limpando o instalador ao final.
+- `install_wazuh.ps1`: baixa o pacote MSI 4.14.0-1, instala apontando para `wazuh.vantix.com.br` e tenta iniciar o serviço `Wazuh`.
 - `remove_zabbix.ps1`: remove serviços, pacotes e entradas de registro relacionadas ao Zabbix Agent.
 
 ## Personalização rápida
-- Ajuste URLs, IPs ou parâmetros do Zabbix editando `install_zabbix_silent.ps1`.
-- Complete os scripts de Sophos e Wazuh conforme o instalador fornecido pela sua organização.
+- Ajuste URLs, IPs ou parâmetros específicos (Zabbix, Sophos, Wazuh) diretamente em cada script dedicado.
+- Substitua os endpoints/versões conforme sua organização mantenha os pacotes e, se necessário, adicione switches extras aos argumentos de instalação.
 - Adicione novos itens ao menu incluindo o script correspondente e registrando-o no dicionário `$scripts` em `main_installer.ps1`.
 
 ## Dúvidas comuns
