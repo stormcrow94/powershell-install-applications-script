@@ -1,14 +1,18 @@
-﻿#remove all zabbix cleint and local dir
+#remove all zabbix cleint and local dir
 
 Write-Host "Detecting current Zabbix Agents"
 Start-Sleep -Seconds 2
 
 $searchString = "Zabbix"
 
-$packages = Get-Package -Name "*$searchString*"
+try {
+    $packages = Get-Package -Name "*$searchString*" -ErrorAction SilentlyContinue
+} catch {
+    $packages = @()
+}
 Clear-Host
 
-if ($packages.Count -eq 0) {
+if ($null -eq $packages -or $packages.Count -eq 0) {
     Write-Host "No packages containin $searchString found"
     Start-Sleep -Seconds 2
 } else {
@@ -39,14 +43,18 @@ if ($packages.Count -eq 0) {
 Write-Host "Removing Zabbix Agent keys from the registry"
 Start-Sleep -Seconds 2
 Clear-Host
-Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\Zabbix Agent 2" -Recurse
-Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\System\Zabbix Agent" -Recurse
+# Remove registry keys if they exist
+try {
+    Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\Zabbix Agent 2" -Recurse -ErrorAction SilentlyContinue
+} catch {
+    # Key may not exist
+}
+try {
+    Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\System\Zabbix Agent" -Recurse -ErrorAction SilentlyContinue
+} catch {
+    # Key may not exist
+}
 Clear-Host
-Write-Host "Checking registry key positions"
-Start-Sleep -Seconds 2
-Clear-Host
-Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\Zabbix Agent 2" -Recurse
-Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\System\Zabbix Agent" -Recurse
 Clear-Host
 Write-Host "Zabbix Agent registry keys removed"
 Start-Sleep -Seconds 2
@@ -54,13 +62,14 @@ Clear-Host
 Clear-Host
 Write-Host "Removing Zabbix service"
 Start-Sleep -Seconds 2
-sc.exe delete "Zabbix Agent 2"
+# Remove services if they exist
+$null = sc.exe delete "Zabbix Agent 2" 2>&1
 Start-Sleep -Seconds 1
 Clear-Host
-sc.exe delete "Zabbix Agent"
+$null = sc.exe delete "Zabbix Agent" 2>&1
 Clear-Host
 Write-Host "Service removed"
 Start-Sleep -Seconds 2
 Clear-Host​
 
-exit
+exit 0
